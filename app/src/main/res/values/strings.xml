@@ -1,0 +1,126 @@
+<resources>
+    <string name="app_name">Echoes Music</string>
+    <string name="tab_buscar">Buscar</string>
+    <string name="tab_playlists">Playlists</string>
+    <string name="tab_reproductor">Reproductor</string>
+    <string name="tab_anadir">Añadir</string>
+    <string name="tab_ajustes">Ajustes</string>
+
+    <!-- Ajustes: conexión con el servidor remoto -->
+    <string name="settings_server_section">Servidor remoto</string>
+    <string name="settings_server_hint">Configura la conexión con tu servidor de almacenamiento de música. El almacenamiento local funciona sin esto.</string>
+    <string name="settings_url_hint">URL del servidor</string>
+    <string name="settings_url_helper">Ej: https://musica.midominio.com</string>
+    <string name="settings_key_hint">Clave de acceso</string>
+    <string name="settings_test">Guardar y probar conexión</string>
+    <string name="settings_testing">Probando conexión…</string>
+    <string name="settings_status_ok">Conectado correctamente</string>
+    <string name="settings_status_bad_key">Servidor accesible, pero la clave es incorrecta</string>
+    <string name="settings_status_unreachable">No se pudo conectar al servidor</string>
+
+    <!-- Añadir música -->
+    <string name="add_title">Añadir música</string>
+    <string name="add_hint">Elige un MP3 del teléfono para añadirlo a tu biblioteca.</string>
+    <string name="add_pick">Elegir MP3</string>
+    <string name="add_dest_title">¿Dónde lo guardo?</string>
+    <string name="add_dest_local">Solo local</string>
+    <string name="add_dest_server">Solo servidor</string>
+    <string name="add_dest_both">Local y servidor</string>
+    <string name="add_processing">Procesando…</string>
+    <string name="add_field_title">Título</string>
+    <string name="add_artists_label">Artistas</string>
+    <string name="add_artist_hint">Añadir artista</string>
+    <string name="add_save">Guardar</string>
+
+    <!-- Buscador -->
+    <string name="search_hint">Buscar por título o artista</string>
+    <string name="search_empty">Sin resultados</string>
+    <string name="search_loading">Cargando biblioteca…</string>
+    <string name="search_empty_library">Tu biblioteca está vacía. Añade música.</string>
+    <string name="badge_local">LOCAL</string>
+    <string name="badge_remote">REMOTA</string>
+    <string name="badge_cloned">CLONADA</string>
+    <string name="unknown_title">Sin título</string>
+    <string name="unknown_artist">Artista desconocido</string>
+    <string name="play_mock">Reproduciendo «%1$s» (mock)</string>
+    <string name="detail_title">Detalles</string>
+    <string name="cd_play">Reproducir</string>
+    <string name="cd_detail">Detalles</string>
+
+    <!-- Editar / borrar canción -->
+    <string name="edit_title">Editar canción</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_delete">Borrar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="edit_done">Cambios guardados</string>
+    <string name="edit_error">Error al guardar los cambios</string>
+    <string name="delete_confirm_title">¿Borrar canción?</string>
+    <string name="delete_confirm_msg">Se eliminará de %1$s. No se puede deshacer.</string>
+    <string name="delete_done">Canción borrada</string>
+    <string name="delete_error">Error al borrar</string>
+    <string name="scope_local">local</string>
+    <string name="scope_server">el servidor</string>
+    <string name="scope_both">local y el servidor</string>
+
+    <!-- Acciones por canción -->
+    <string name="action_more">Más acciones…</string>
+    <string name="action_clone_local">Clonar en local</string>
+    <string name="action_upload_server">Subir al servidor</string>
+    <string name="action_delete_local">Borrar de local</string>
+    <string name="action_delete_server">Borrar del servidor</string>
+    <string name="clone_done">Clonada en local</string>
+    <string name="clone_error">Error al clonar</string>
+    <string name="upload_done">Subida al servidor</string>
+    <string name="upload_error">Error al subir</string>
+    <string name="delete_local_done">Borrada de local</string>
+    <string name="delete_server_done">Borrada del servidor</string>
+    <string name="working">Procesando…</string>
+
+    <!-- Reproductor -->
+    <string name="player_empty">Nada reproduciéndose</string>
+    <string name="player_from_search">Reproduciendo desde la búsqueda</string>
+    <string name="player_from_playlist">Reproduciendo desde %1$s</string>
+    <string name="player_shuffle">Aleatorio</string>
+    <string name="player_repeat">Repetir</string>
+    <string name="player_prev">Anterior</string>
+    <string name="player_next">Siguiente</string>
+    <string name="player_play">Reproducir o pausar</string>
+
+    <!-- Playlists -->
+    <string name="playlist_new">Nueva</string>
+    <string name="playlist_none">No tienes playlists todavía.</string>
+    <string name="playlist_empty">Esta playlist está vacía.</string>
+    <string name="playlist_play_all">Reproducir</string>
+    <string name="playlist_create_title">Nueva playlist</string>
+    <string name="playlist_name_hint">Nombre</string>
+    <string name="playlist_where_local">En el teléfono (local)</string>
+    <string name="playlist_where_server">En el servidor (compartida)</string>
+    <string name="playlist_badge_local">LOCAL</string>
+    <string name="playlist_badge_server">SERVIDOR</string>
+    <string name="playlist_badge_cloned">CLONADA</string>
+    <string name="action_clone_playlist">Clonar en local (offline)</string>
+    <string name="playlist_cloning">Clonando playlist…</string>
+    <string name="playlist_cloned">Playlist clonada en local</string>
+    <string name="playlist_clone_error">No se pudo clonar la playlist</string>
+    <string name="playlist_uncloned">Copia local eliminada (sigue en el servidor)</string>
+    <string name="playlist_delete_cloned_confirm">Se quitará la copia local (offline). La playlist del servidor seguirá ahí.</string>
+    <string name="action_share_playlist">Compartir (subir al servidor)</string>
+    <string name="playlist_sharing">Compartiendo playlist…</string>
+    <string name="playlist_shared">Playlist compartida en el servidor</string>
+    <string name="playlist_share_error">No se pudo compartir la playlist</string>
+    <string name="action_delete_both">Borrar de ambos</string>
+    <string name="playlist_deleted_server">Eliminada del servidor (sigue en local)</string>
+    <string name="playlist_created">Playlist creada</string>
+    <string name="playlist_create_error">No se pudo crear la playlist</string>
+    <string name="playlist_deleted">Playlist borrada</string>
+    <string name="playlist_delete_error">No se pudo borrar</string>
+    <string name="playlist_delete_confirm">¿Borrar esta playlist? Las canciones no se borran, solo la lista.</string>
+    <string name="playlist_add_title">Añadir a playlist</string>
+    <string name="playlist_added">Añadida a la playlist</string>
+    <string name="playlist_add_error">No se pudo añadir</string>
+    <string name="playlist_add_needs_remote">Esa canción no está en el servidor. Súbela primero para añadirla a una playlist del servidor.</string>
+    <string name="playlist_song_removed">Quitada de la playlist</string>
+    <string name="action_add_to_playlist">Añadir a playlist</string>
+    <string name="action_remove_from_playlist">Quitar de la playlist</string>
+    <string name="action_add_songs">Añadir canciones</string>
+</resources>

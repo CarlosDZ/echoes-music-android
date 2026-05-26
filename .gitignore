@@ -1,0 +1,41 @@
+# Gradle
+.gradle/
+build/
+
+# Local config (contains sdk.dir / absolute paths — must not be committed)
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.navigation/
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# Build artifacts
+*.apk
+*.aab
+*.ap_
+*.aar
+*.dex
+*.class
+bin/
+gen/
+out/
+release/
+
+# Signing — never commit keystores or their credentials
+*.jks
+*.keystore
+keystore.properties
+
+# Logs / temp
+*.log
+*.hprof
+
+# OS files
+.DS_Store
+Thumbs.db

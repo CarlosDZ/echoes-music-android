@@ -1,0 +1,35 @@
+<resources>
+    <!-- Dark-only: parent is Dark (not DayNight), so the app ignores the system
+         day/night setting and always renders the brand dark palette. -->
+    <style name="Theme.MusicaApp" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Purple accent -->
+        <item name="colorPrimary">@color/echoes_primary</item>
+        <item name="colorOnPrimary">@color/echoes_on_primary</item>
+        <item name="colorPrimaryContainer">@color/echoes_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/echoes_on_primary_container</item>
+
+        <!-- The bottom-nav active indicator (the pill behind the selected icon)
+             is drawn from the secondary-container role. Point it at the bright
+             neon purple so the selected tab clearly pops, with a black icon/label
+             on top for contrast. -->
+        <item name="colorSecondary">@color/echoes_primary</item>
+        <item name="colorOnSecondary">@color/echoes_on_primary</item>
+        <item name="colorSecondaryContainer">@color/echoes_primary</item>
+        <item name="colorOnSecondaryContainer">@color/echoes_on_primary</item>
+
+        <!-- Backgrounds and surfaces -->
+        <item name="android:colorBackground">@color/echoes_background</item>
+        <item name="colorOnBackground">@color/echoes_on_background</item>
+        <item name="colorSurface">@color/echoes_surface</item>
+        <item name="colorOnSurface">@color/echoes_on_surface</item>
+        <item name="colorSurfaceVariant">@color/echoes_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/echoes_on_surface_variant</item>
+        <item name="colorOutline">@color/echoes_outline</item>
+
+        <!-- System bars: blend with the #121212 background, light icons -->
+        <item name="android:statusBarColor">@color/echoes_background</item>
+        <item name="android:navigationBarColor">@color/echoes_surface</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>
