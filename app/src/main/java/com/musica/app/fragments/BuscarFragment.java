@@ -22,6 +22,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.musica.app.MainActivity;
 import com.musica.app.R;
 import com.musica.app.playback.PlaybackController;
+import com.musica.app.data.DuplicateCheck;
 import com.musica.app.data.Fuzzy;
 import com.musica.app.data.LocalRepository;
 import com.musica.app.data.MergedLibrary;
@@ -266,6 +267,26 @@ public class BuscarFragment extends Fragment {
     }
 
     private void uploadToServer(MergedLibrary.Item item, String title, List<String> artists) {
+        // Warn about a near-duplicate already on the server before uploading.
+        io.execute(() -> {
+            List<Song> matches = DuplicateCheck.findSimilar(title, artists, remote.allSongs());
+            View root = getView();
+            if (root == null) return;
+            root.post(() -> {
+                if (b == null) return;
+                if (matches.isEmpty()) doUploadToServer(item, title, artists);
+                else new MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(R.string.add_dupe_title)
+                        .setMessage(dupeMessage(matches, R.string.dupe_scope_server))
+                        .setNegativeButton(R.string.action_cancel, null)
+                        .setPositiveButton(R.string.add_dupe_add_anyway,
+                                (d, w) -> doUploadToServer(item, title, artists))
+                        .show();
+            });
+        });
+    }
+
+    private void doUploadToServer(MergedLibrary.Item item, String title, List<String> artists) {
         io.execute(() -> {
             RemoteRepository.UploadResult r =
                     remote.upload(local.fileOf(item.song().path()), title, artists);
@@ -273,6 +294,15 @@ public class BuscarFragment extends Fragment {
                     || r.status() == RemoteRepository.Status.DUPLICATE;
             finishOp(ok, R.string.upload_done, R.string.upload_error);
         });
+    }
+
+    private String dupeMessage(List<Song> matches, int scopeRes) {
+        StringBuilder sb = new StringBuilder(getString(R.string.add_dupe_intro));
+        for (Song s : matches) {
+            String t = (s.title() == null || s.title().isBlank()) ? getString(R.string.unknown_title) : s.title();
+            sb.append("\n• «").append(t).append("» (").append(getString(scopeRes)).append(")");
+        }
+        return sb.toString();
     }
 
     // ---------------- add to playlist ----------------

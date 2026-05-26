@@ -20,9 +20,11 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.musica.app.R;
+import com.musica.app.data.DuplicateCheck;
 import com.musica.app.data.LocalRepository;
 import com.musica.app.data.RemoteRepository;
 import com.musica.app.data.Tags;
+import com.musica.app.model.Song;
 import com.musica.app.databinding.FragmentAnadirBinding;
 
 import java.io.IOException;
@@ -171,12 +173,68 @@ public class AnadirFragment extends Fragment {
                             case 2 -> Dest.BOTH;
                             default -> Dest.LOCAL;
                         };
-                        process(pickedUri, dest, title, artists);
+                        checkThenProcess(dest, title, artists);
                     })
                     .show();
         } else {
-            process(pickedUri, Dest.LOCAL, title, artists);
+            checkThenProcess(Dest.LOCAL, title, artists);
         }
+    }
+
+    /**
+     * Before ingesting, look for a near-duplicate on each side this song would
+     * land on (local and/or server) and, if found, warn — the byte hash only
+     * catches exact files, not the same song from another source.
+     */
+    private void checkThenProcess(Dest dest, String title, List<String> artists) {
+        b.btnSave.setEnabled(false);
+        setStatus(getString(R.string.add_checking_dupes), R.color.echoes_on_surface_variant);
+        io.execute(() -> {
+            List<Song> localMatches = (dest == Dest.LOCAL || dest == Dest.BOTH)
+                    ? DuplicateCheck.findSimilar(title, artists, local.allSongs())
+                    : List.of();
+            List<Song> remoteMatches = (dest == Dest.SERVER || dest == Dest.BOTH)
+                    ? DuplicateCheck.findSimilar(title, artists, remote.allSongs())
+                    : List.of();
+            View root = getView();
+            if (root == null) return;
+            root.post(() -> {
+                if (b == null) return;
+                if (localMatches.isEmpty() && remoteMatches.isEmpty()) {
+                    process(pickedUri, dest, title, artists);
+                } else {
+                    showDuplicateWarning(dest, title, artists, localMatches, remoteMatches);
+                }
+            });
+        });
+    }
+
+    private void showDuplicateWarning(Dest dest, String title, List<String> artists,
+                                      List<Song> localMatches, List<Song> remoteMatches) {
+        StringBuilder msg = new StringBuilder(getString(R.string.add_dupe_intro));
+        for (Song s : localMatches) {
+            msg.append("\n• «").append(songTitle(s)).append("» (")
+                    .append(getString(R.string.dupe_scope_local)).append(")");
+        }
+        for (Song s : remoteMatches) {
+            msg.append("\n• «").append(songTitle(s)).append("» (")
+                    .append(getString(R.string.dupe_scope_server)).append(")");
+        }
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.add_dupe_title)
+                .setMessage(msg.toString())
+                .setNegativeButton(R.string.action_cancel, (d, w) -> {
+                    b.btnSave.setEnabled(true);
+                    setStatus("", R.color.echoes_on_surface_variant);
+                })
+                .setPositiveButton(R.string.add_dupe_add_anyway,
+                        (d, w) -> process(pickedUri, dest, title, artists))
+                .show();
+    }
+
+    private static String songTitle(Song s) {
+        String t = s.title();
+        return (t == null || t.isBlank()) ? "sin título" : t;
     }
 
     private void process(Uri uri, Dest dest, String title, List<String> artists) {

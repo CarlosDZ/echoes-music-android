@@ -31,6 +31,12 @@
     <string name="add_artists_label">Artistas</string>
     <string name="add_artist_hint">Añadir artista</string>
     <string name="add_save">Guardar</string>
+    <string name="add_checking_dupes">Comprobando duplicados…</string>
+    <string name="add_dupe_title">¿Posible duplicado?</string>
+    <string name="add_dupe_intro">Puede que esta canción ya exista:</string>
+    <string name="add_dupe_add_anyway">Añadir igualmente</string>
+    <string name="dupe_scope_local">local</string>
+    <string name="dupe_scope_server">servidor</string>
 
     <!-- Buscador -->
     <string name="search_hint">Buscar por título o artista</string>
