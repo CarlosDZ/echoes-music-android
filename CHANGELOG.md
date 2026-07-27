@@ -8,6 +8,24 @@ El formato sigue la idea de [Keep a Changelog](https://keepachangelog.com/es-ES/
 El versionado usa el esquema propio del proyecto `MAJOR.MINOR_PATCH` (p. ej. `1.1_0`);
 el `versionCode` de Android sube en +1 en cada release.
 
+## [1.1_2] — 2026-07-27
+
+### Fixed
+- La barra de progreso de descarga ya no muestra el punto (*stop indicator*) de
+  Material al final del track.
+- El reproductor ya no parpadea (mostraba la interfaz un instante) al abrirlo sin
+  nada en reproducción.
+
+## [1.1_1] — 2026-07-27
+
+### Changed
+- El formulario de título/artistas al añadir una canción es ahora un **modal
+  (bottom sheet)**, compartido por la descarga de YouTube y "Elegir MP3"; el
+  resultado del guardado se muestra como *Snackbar*.
+- La lista de resultados de YouTube se cierra al iniciar una descarga (evita tocar
+  otro resultado por error).
+- La barra de progreso de descarga usa track gris con el progreso en morado.
+
 ## [1.1_0] — 2026-07-27
 
 ### Added
@@ -22,8 +40,9 @@ el `versionCode` de Android sube en +1 en cada release.
   ambos, con aviso de posibles duplicados; el archivo temporal se borra al guardar.
 
 ### Changed
-- El motor `yt-dlp` va empaquetado (`youtubedl-android`) y puede autoactualizarse en
-  caliente, así que las roturas de YouTube se arreglan sin publicar una versión nueva.
+- El motor `yt-dlp` va empaquetado (`youtubedl-android`) y, si una descarga falla, se
+  **actualiza (nightly) y reintenta solo** — así las roturas de YouTube se arreglan sin
+  publicar una versión nueva.
 - El APK crece a ~100 MB por las librerías nativas (Python + ffmpeg) para
   `arm64-v8a` / `armeabi-v7a`.
 
