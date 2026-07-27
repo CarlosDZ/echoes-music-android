@@ -35,6 +35,8 @@
     <string name="yt_download_wait">Descargando…</string>
     <string name="yt_download_error">Error al descargar de YouTube</string>
     <string name="yt_search_error">Error al buscar en YouTube</string>
+    <string name="yt_updating_engine">Actualizando el motor de descargas…</string>
+    <string name="yt_engine_updated">Motor actualizado, reintentando…</string>
     <string name="yt_cd_download">Descargar</string>
     <string name="yt_or_pick">o elige un archivo del teléfono</string>
     <!-- %1$s = duración (m:ss); usado como subtítulo de cada resultado -->
@@ -44,6 +46,7 @@
     <string name="add_dest_server">Solo servidor</string>
     <string name="add_dest_both">Local y servidor</string>
     <string name="add_processing">Procesando…</string>
+    <string name="add_sheet_title">Datos de la canción</string>
     <string name="add_field_title">Título</string>
     <string name="add_artists_label">Artistas</string>
     <string name="add_artist_hint">Añadir artista</string>

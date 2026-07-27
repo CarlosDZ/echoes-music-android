@@ -1,5 +1,6 @@
 package com.musica.app.data;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -167,5 +168,34 @@ public final class YtDlpService {
     /** Aborts an in-flight download started with the given {@code videoId}. */
     public boolean cancel(String videoId) {
         return YoutubeDL.getInstance().destroyProcessById(videoId);
+    }
+
+    // ---- Engine update ----------------------------------------------------
+
+    public interface UpdateCallback {
+        /** @param detail the new yt-dlp version on success, or the error message. */
+        void onDone(boolean ok, String detail);
+    }
+
+    /**
+     * Downloads the latest yt-dlp (nightly channel) from GitHub, replacing the
+     * bundled one at runtime. This is how YouTube breakages get fixed without a
+     * new app release: when the player changes and downloads start failing, a
+     * fresh yt-dlp usually restores them. Callback fires on the main thread.
+     *
+     * @param appContext application context (safe to retain).
+     */
+    public void updateEngine(Context appContext, UpdateCallback cb) {
+        io.execute(() -> {
+            try {
+                YoutubeDL.getInstance()
+                        .updateYoutubeDL(appContext, YoutubeDL.UpdateChannel._NIGHTLY);
+                String version = YoutubeDL.getInstance().version(appContext);
+                main.post(() -> cb.onDone(true, version));
+            } catch (Exception e) {
+                Log.e(TAG, "yt-dlp update failed", e);
+                main.post(() -> cb.onDone(false, e.getMessage()));
+            }
+        });
     }
 }

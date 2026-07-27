@@ -72,6 +72,10 @@ public class ReproductorFragment extends Fragment {
                 pc.seekTo(s.getProgress());
             }
         });
+
+        // Set the correct empty-vs-playing state before the first frame draws,
+        // otherwise the player UI flashes for a frame and then hides.
+        render();
     }
 
     @Override
