@@ -33,6 +33,7 @@
     <string name="yt_unavailable">La descarga de YouTube no está disponible en este arranque.</string>
     <string name="yt_downloading">Descargando… %1$d%%</string>
     <string name="yt_download_error">Error al descargar de YouTube</string>
+    <string name="yt_cd_download">Descargar</string>
     <string name="yt_or_pick">o elige un archivo del teléfono</string>
     <!-- %1$s = duración (m:ss); usado como subtítulo de cada resultado -->
     <string name="yt_result_meta">%1$s · %2$s</string>
