@@ -19,12 +19,90 @@
             android:textSize="22sp"
             android:textStyle="bold" />
 
+        <!-- ── Fuente 1: buscar en YouTube y descargar (todo on-device) ── -->
         <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/yt_section"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="15sp" />
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:layout_marginBottom="20dp"
-            android:text="@string/add_hint"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/yt_query_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_yt_query"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_yt_search"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/yt_search" />
+        </LinearLayout>
+
+        <!-- Indeterminate: shown only while a search is in flight -->
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/pb_yt_search"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:indeterminate="true"
+            android:visibility="gone"
+            app:indicatorSize="28dp" />
+
+        <!-- Results; nested scrolling off so the outer ScrollView owns scrolling -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_yt_results"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false"
+            android:visibility="gone" />
+
+        <!-- Download progress: text + determinate bar, both shown while downloading -->
+        <TextView
+            android:id="@+id/tv_yt_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/pb_yt_download"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:visibility="gone" />
+
+        <!-- ── Fuente 2: elegir un MP3 del teléfono (alternativa) ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp"
+            android:text="@string/yt_or_pick"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="14sp" />
 

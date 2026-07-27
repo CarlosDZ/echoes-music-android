@@ -22,6 +22,20 @@
     <string name="add_title">Añadir música</string>
     <string name="add_hint">Elige un MP3 del teléfono para añadirlo a tu biblioteca.</string>
     <string name="add_pick">Elegir MP3</string>
+
+    <!-- Añadir música: buscar y descargar de YouTube (todo en el dispositivo) -->
+    <string name="yt_section">Buscar en YouTube</string>
+    <string name="yt_query_hint">Título de la canción</string>
+    <string name="yt_search">Buscar</string>
+    <string name="yt_searching">Buscando en YouTube…</string>
+    <string name="yt_no_results">Sin resultados en YouTube</string>
+    <string name="yt_preparing">Preparándolo todo…</string>
+    <string name="yt_unavailable">La descarga de YouTube no está disponible en este arranque.</string>
+    <string name="yt_downloading">Descargando… %1$d%%</string>
+    <string name="yt_download_error">Error al descargar de YouTube</string>
+    <string name="yt_or_pick">o elige un archivo del teléfono</string>
+    <!-- %1$s = duración (m:ss); usado como subtítulo de cada resultado -->
+    <string name="yt_result_meta">%1$s · %2$s</string>
     <string name="add_dest_title">¿Dónde lo guardo?</string>
     <string name="add_dest_local">Solo local</string>
     <string name="add_dest_server">Solo servidor</string>
