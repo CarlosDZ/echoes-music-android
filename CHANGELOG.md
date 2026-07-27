@@ -1,3 +1,5 @@
+🌐 [English](CHANGELOG.en.md) · **Español**
+
 # Changelog
 
 Todos los cambios notables de la app Echoes (Android) se documentan aquí.

@@ -1,3 +1,5 @@
+🌐 [English](README.en.md) · **Español**
+
 # Echoes — App Android
 
 Reproductor de música personal para Android (Java nativo). Biblioteca **local en el teléfono** que se **fusiona** con la biblioteca **remota** de un [servidor Echoes](https://github.com/CarlosDZ/echoes-music-server) cuando hay conexión. Reproduce indistintamente archivos locales y streaming remoto, y permite clonar canciones/playlists para tenerlas offline.
