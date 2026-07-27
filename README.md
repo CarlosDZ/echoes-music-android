@@ -4,11 +4,12 @@ Reproductor de música personal para Android (Java nativo). Biblioteca **local e
 
 Es la app cliente; el servidor es un proyecto aparte.
 
-## Características (v1.0)
+## Características (v1.1)
 
 - **Biblioteca fusionada** local + servidor, deduplicada por hash. Cada canción muestra su disponibilidad: `LOCAL`, `REMOTA` o `CLONADA`.
 - **Buscador** con coincidencia difusa (fuzzy) por título y artista, en tiempo real.
 - **Añadir** MP3 desde el teléfono, con título/artistas editables, a local, al servidor o a ambos.
+- **Buscar y descargar de YouTube** — *todo en el dispositivo, sin API key ni servidor*: busca por título, elige un resultado y se descarga como MP3. El formulario de metadatos se **prerrellena** (título/artista, con limpieza de sufijos y *fuzzy-match* contra tus artistas existentes) y reutiliza el mismo flujo de guardado (local / servidor / ambos, con aviso de duplicados).
 - **Editar / borrar** canciones (en el lado que corresponda; borrado partido para las clonadas).
 - **Clonar** (remoto → local, offline) y **subir** (local → servidor) canciones individuales.
 - **Playlists fusionadas** (local + servidor, emparejadas por nombre): crear, añadir/quitar canciones (con buscador), **clonar** una de servidor a local y **compartir** una local al servidor.
@@ -33,7 +34,7 @@ Es la app cliente; el servidor es un proyecto aparte.
 ./gradlew assembleDebug -Dorg.gradle.java.home=/usr/lib/jvm/java-17-openjdk
 
 # Instalar en un dispositivo conectado (adb)
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r "app/build/outputs/apk/debug/Echoes Music-1.1_0-debug.apk"
 ```
 
 > En móviles MIUI/Xiaomi, `./gradlew installDebug` puede fallar con
@@ -56,6 +57,7 @@ La configuración se guarda en `SharedPreferences`. No hay credenciales en el c�
 ```
 app/src/main/java/com/musica/app/
 ├── MainActivity            # 5 pestañas + mini-reproductor
+├── MusicApp                # Application: inicializa yt-dlp/ffmpeg en 2º plano al arrancar
 ├── model/                  # Song, Artist, Playlist (records, compartidos con el server),
 │                           #   Availability, PlaylistRef
 ├── data/
@@ -65,6 +67,8 @@ app/src/main/java/com/musica/app/
 │   ├── MergedLibrary       # fusiona local + remoto por file_hash
 │   ├── Tags                # lectura de metadatos con MediaMetadataRetriever
 │   ├── Fuzzy               # matcher difuso del buscador
+│   ├── YtDlpService        # búsqueda + descarga de YouTube on-device (yt-dlp), fuera del hilo principal
+│   ├── YtMetadata          # limpia título/artista de YouTube y canonicaliza contra los existentes (fuzzy)
 │   └── Prefs               # URL + clave del servidor
 ├── playback/
 │   ├── PlaybackService     # MediaSessionService: ExoPlayer + MediaSession + notificación
@@ -84,6 +88,13 @@ servidor no responde.
 `appcompat`, `fragment`, `material`, y `media3-exoplayer` + `media3-session` para
 reproducción y la notificación. JSON con `org.json` (incluido en Android); sin
 clientes HTTP de terceros.
+
+Para la descarga de YouTube, `io.github.junkfood02.youtubedl-android` (artefactos
+`library` + `ffmpeg`), que empaqueta **yt-dlp + Python + ffmpeg nativos** y funciona
+**sin API key** (habla directamente con YouTube desde la IP del dispositivo). El motor
+yt-dlp puede autoactualizarse en caliente. Esto sube el APK a **~100 MB** (libs nativas
+para `arm64-v8a`/`armeabi-v7a`; añade `x86_64` en `abiFilters` para emulador). El primer
+arranque tras instalar desempaqueta el Python una vez (unos segundos).
 
 ## Licencia
 
