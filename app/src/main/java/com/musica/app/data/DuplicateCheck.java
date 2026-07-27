@@ -20,8 +20,8 @@ import java.util.Set;
  */
 public final class DuplicateCheck {
 
-    /** Titles at or above this similarity (0..1) count as "the same". */
-    private static final double TITLE_SIMILARITY = 0.85;
+    /** Strings at or above this Levenshtein ratio (0..1) count as "the same". */
+    public static final double SIMILAR_THRESHOLD = 0.85;
 
     private DuplicateCheck() { }
 
@@ -49,14 +49,21 @@ public final class DuplicateCheck {
     }
 
     public static boolean titlesSimilar(String a, String b) {
-        if (a == null || b == null) return false;
+        return similarity(a, b) >= SIMILAR_THRESHOLD;
+    }
+
+    /**
+     * Symmetric similarity in [0,1] from the Levenshtein edit distance over
+     * normalized strings. Reused for both song titles and artist names.
+     */
+    public static double similarity(String a, String b) {
+        if (a == null || b == null) return 0;
         String na = norm(a);
         String nb = norm(b);
-        if (na.isEmpty() || nb.isEmpty()) return false;
-        if (na.equals(nb)) return true;
+        if (na.isEmpty() || nb.isEmpty()) return 0;
+        if (na.equals(nb)) return 1;
         int max = Math.max(na.length(), nb.length());
-        int distance = levenshtein(na, nb);
-        return (max - distance) / (double) max >= TITLE_SIMILARITY;
+        return (max - levenshtein(na, nb)) / (double) max;
     }
 
     private static Set<String> normalizedSet(List<String> xs) {
