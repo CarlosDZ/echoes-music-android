@@ -1,32 +1,35 @@
 package com.musica.app.fragments;
 
 import android.content.Context;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.Fragment;
 
-import com.google.android.material.chip.Chip;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 import com.musica.app.R;
+import com.musica.app.MusicApp;
 import com.musica.app.data.DuplicateCheck;
 import com.musica.app.data.LocalRepository;
 import com.musica.app.data.RemoteRepository;
 import com.musica.app.data.Tags;
+import com.musica.app.data.YtDlpService;
+import com.musica.app.data.YtMetadata;
 import com.musica.app.model.Song;
+import com.musica.app.ui.YtResultAdapter;
 import com.musica.app.databinding.FragmentAnadirBinding;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,9 +38,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * "Añadir música": pick one MP3, edit its title/artists (pre-filled from tags),
- * then choose where it goes — local, server, or both. The destination prompt is
- * skipped when no server is configured. Both backends converge on single-ingest.
+ * "Añadir música": get a song either by searching/downloading it from YouTube
+ * (on-device) or by picking an MP3 from the phone. Either source opens a modal
+ * {@link SongMetadataSheet} pre-filled with title/artists; on confirm the song
+ * is ingested to local, the server, or both. The destination prompt is skipped
+ * when no server is configured. Both backends converge on single-ingest.
  */
 public class AnadirFragment extends Fragment {
 
@@ -47,9 +52,17 @@ public class AnadirFragment extends Fragment {
     private LocalRepository local;
     private RemoteRepository remote;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private Snackbar working;   // indefinite "processing…" snackbar, replaced by the result
 
     private ActivityResultLauncher<String[]> picker;
     private Uri pickedUri;
+
+    private static final int YT_MAX_RESULTS = 8;
+    private YtDlpService yt;
+    private YtResultAdapter ytResults;
+    private boolean ytBusy;
+    private boolean ytEngineUpdated;   // yt-dlp refreshed this session (auto-recovery)
+    private File ytTempFile;   // last YT download awaiting save; deleted on success/leave
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -74,48 +87,207 @@ public class AnadirFragment extends Fragment {
         remote = new RemoteRepository(requireContext());
 
         b.btnPick.setOnClickListener(v -> picker.launch(new String[]{"audio/mpeg"}));
-        b.btnAddArtist.setOnClickListener(v -> addTypedArtist());
-        b.etArtist.setOnItemClickListener((p, v, pos, id) -> addTypedArtist());
-        b.etArtist.setOnEditorActionListener((v, actionId, e) -> {
-            addTypedArtist();
+
+        yt = YtDlpService.get();
+        ytResults = new YtResultAdapter(this::onYtResultPicked);
+        b.rvYtResults.setLayoutManager(new LinearLayoutManager(requireContext()));
+        b.rvYtResults.setAdapter(ytResults);
+        b.btnYtSearch.setOnClickListener(v -> onYtSearch());
+        b.etYtQuery.setOnEditorActionListener((v, actionId, e) -> {
+            onYtSearch();
             return true;
         });
-        b.btnSave.setOnClickListener(v -> onSave());
+
+        // The metadata sheet returns the confirmed title/artists here.
+        getChildFragmentManager().setFragmentResultListener(
+                SongMetadataSheet.RESULT_KEY, this, (key, bundle) -> {
+                    String title = bundle.getString(SongMetadataSheet.ARG_TITLE, "");
+                    ArrayList<String> artists = bundle.getStringArrayList(SongMetadataSheet.ARG_ARTISTS);
+                    onMetadataConfirmed(title, artists == null ? new ArrayList<>() : artists);
+                });
     }
 
-    private void onPicked(Uri uri) {
-        pickedUri = uri;
-        b.tvFile.setText(displayName(uri));
-        b.tvStatus.setText("");
-        b.etTitle.setText("");
-        b.chipArtists.removeAllViews();
-        b.form.setVisibility(View.VISIBLE);
+    // ------------------------- Source: pick an MP3 -------------------------
 
-        // Pre-fill title/artists from the file's tags, and load existing artist
-        // names for the autocomplete — both off the main thread.
+    private void onPicked(Uri uri) {
+        deleteYtTemp();   // switching to a file pick abandons any pending YT download
+        pickedUri = uri;
         final Context app = requireContext().getApplicationContext();
         io.execute(() -> {
             Tags.Read tags = null;
             try {
                 tags = Tags.read(app, uri);
             } catch (RuntimeException ignored) {
-                // unreadable tags → leave the form blank for the user to fill
+                // unreadable tags → open the sheet blank for the user to fill
             }
             List<String> suggestions = mergedArtists();
-            final Tags.Read t = tags;
-            View root = getView();
-            if (root != null) root.post(() -> prefill(t, suggestions));
+            String title = tags != null && tags.title() != null ? tags.title() : "";
+            ArrayList<String> artists = new ArrayList<>();
+            if (tags != null) artists.addAll(tags.artists());
+            postOpenSheet(title, artists, suggestions);
         });
     }
 
-    private void prefill(Tags.Read tags, List<String> suggestions) {
-        if (b == null) return;
-        b.etArtist.setAdapter(new ArrayAdapter<>(requireContext(),
-                android.R.layout.simple_list_item_1, suggestions));
-        if (tags != null) {
-            if (tags.title() != null) b.etTitle.setText(tags.title());
-            for (String a : tags.artists()) addChip(a);
+    // ------------------------- Source: YouTube -------------------------
+
+    private void onYtSearch() {
+        String query = b.etYtQuery.getText() == null ? "" : b.etYtQuery.getText().toString().trim();
+        if (query.isBlank() || ytBusy) return;
+
+        // Gate on the one-time yt-dlp unpack (see MusicApp): run now if ready,
+        // wait behind a "preparing" message if still initializing, or bail if it
+        // failed this session.
+        MusicApp app = (MusicApp) requireContext().getApplicationContext();
+        switch (app.ytState()) {
+            case READY -> runYtSearch(query);
+            case FAILED -> setYtStatus(getString(R.string.yt_unavailable), R.color.echoes_error);
+            case INITIALIZING -> {
+                setYtSearchSpinner(true);
+                setYtStatus(getString(R.string.yt_preparing), R.color.echoes_on_surface_variant);
+                app.whenYtReady(ok -> {
+                    if (b == null) return;
+                    if (ok) {
+                        runYtSearch(query);
+                    } else {
+                        setYtSearchSpinner(false);
+                        setYtStatus(getString(R.string.yt_unavailable), R.color.echoes_error);
+                    }
+                });
+            }
         }
+    }
+
+    private void runYtSearch(String query) {
+        setYtSearchSpinner(true);
+        setYtStatus("", R.color.echoes_on_surface_variant);
+        b.rvYtResults.setVisibility(View.GONE);
+        yt.search(query, YT_MAX_RESULTS, new YtDlpService.SearchCallback() {
+            @Override
+            public void onResults(List<YtDlpService.SearchResult> results) {
+                if (b == null) return;
+                setYtSearchSpinner(false);
+                if (results.isEmpty()) {
+                    setYtStatus(getString(R.string.yt_no_results),
+                            R.color.echoes_on_surface_variant);
+                    return;
+                }
+                ytResults.submit(results);
+                b.rvYtResults.setVisibility(View.VISIBLE);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                if (b == null) return;
+                setYtSearchSpinner(false);
+                setYtStatus(getString(R.string.yt_search_error), R.color.echoes_error);
+            }
+        });
+    }
+
+    private void onYtResultPicked(YtDlpService.SearchResult r) {
+        if (ytBusy) return;
+        ytBusy = true;
+        b.btnYtSearch.setEnabled(false);
+        b.rvYtResults.setVisibility(View.GONE);   // lock the list while downloading
+        deleteYtTemp();   // drop any previous unsaved download
+        startYtDownload(r, false);
+    }
+
+    private void startYtDownload(YtDlpService.SearchResult r, boolean isRetry) {
+        setYtSearchSpinner(false);
+        b.pbYtDownload.setVisibility(View.VISIBLE);
+        b.pbYtDownload.setProgress(0);
+        setYtStatus(getString(R.string.yt_download_wait), R.color.echoes_on_surface_variant);
+
+        File tempDir = new File(requireContext().getCacheDir(), "yt");
+        yt.download(r.id, tempDir, new YtDlpService.DownloadCallback() {
+            @Override
+            public void onProgress(float percent, long etaSeconds) {
+                if (b == null) return;
+                // percent is -1 during the connecting phase; only move the bar
+                // once real progress arrives (the indicator stays determinate).
+                if (percent >= 0) {
+                    b.pbYtDownload.setProgress((int) percent);
+                    setYtStatus(getString(R.string.yt_downloading, (int) percent),
+                            R.color.echoes_on_surface_variant);
+                }
+            }
+
+            @Override
+            public void onComplete(File file) {
+                if (b == null) return;
+                ytBusy = false;
+                b.btnYtSearch.setEnabled(true);
+                b.pbYtDownload.setVisibility(View.GONE);
+                setYtStatus("", R.color.echoes_on_surface_variant);
+                // Treat the download like a picked file, then open the sheet.
+                ytTempFile = file;
+                pickedUri = Uri.fromFile(file);
+                prefillFromYoutube(r);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                if (b == null) return;
+                // A download failure is usually the bundled yt-dlp being stale
+                // vs YouTube's current player. Refresh the engine once per session
+                // and retry; if it still fails, surface the error.
+                if (!ytEngineUpdated && !isRetry) {
+                    updateEngineThenRetry(r);
+                } else {
+                    ytBusy = false;
+                    b.btnYtSearch.setEnabled(true);
+                    b.pbYtDownload.setVisibility(View.GONE);
+                    b.rvYtResults.setVisibility(View.VISIBLE);   // let the user pick another
+                    setYtStatus(getString(R.string.yt_download_error), R.color.echoes_error);
+                }
+            }
+        });
+    }
+
+    /** Updates yt-dlp (nightly) once, then retries the download a single time. */
+    private void updateEngineThenRetry(YtDlpService.SearchResult r) {
+        b.pbYtDownload.setVisibility(View.GONE);
+        setYtSearchSpinner(true);
+        setYtStatus(getString(R.string.yt_updating_engine), R.color.echoes_on_surface_variant);
+        yt.updateEngine(requireContext().getApplicationContext(), (ok, detail) -> {
+            if (b == null) return;
+            setYtSearchSpinner(false);
+            if (ok) {
+                ytEngineUpdated = true;
+                setYtStatus(getString(R.string.yt_engine_updated),
+                        R.color.echoes_on_surface_variant);
+                startYtDownload(r, true);
+            } else {
+                ytBusy = false;
+                b.btnYtSearch.setEnabled(true);
+                b.rvYtResults.setVisibility(View.VISIBLE);
+                setYtStatus(getString(R.string.yt_download_error), R.color.echoes_error);
+            }
+        });
+    }
+
+    /** Cleans the YouTube title/artist, canonicalizes, then opens the sheet. */
+    private void prefillFromYoutube(YtDlpService.SearchResult r) {
+        io.execute(() -> {
+            List<String> suggestions = mergedArtists();
+            YtMetadata.Guess guess = YtMetadata.parse(r.title, r.uploader);
+            List<String> artists = YtMetadata.canonicalize(guess.artists(), suggestions);
+            postOpenSheet(guess.title(), new ArrayList<>(artists), suggestions);
+        });
+    }
+
+    // ------------------------- Shared metadata sheet -------------------------
+
+    /** Posts sheet opening back to the main thread (callers run off-thread). */
+    private void postOpenSheet(String title, ArrayList<String> artists, List<String> suggestions) {
+        ArrayList<String> sug = new ArrayList<>(suggestions);
+        View root = getView();
+        if (root != null) root.post(() -> {
+            if (b == null || !isAdded()) return;
+            SongMetadataSheet.newInstance(title, artists, sug)
+                    .show(getChildFragmentManager(), "song_metadata");
+        });
     }
 
     /** Existing artist names from local + server (silent degrade), deduped. */
@@ -126,40 +298,8 @@ public class AnadirFragment extends Fragment {
         return new ArrayList<>(set);
     }
 
-    private void addTypedArtist() {
-        String name = b.etArtist.getText() == null ? "" : b.etArtist.getText().toString().trim();
-        if (!name.isBlank()) addChip(name);
-        b.etArtist.setText("");
-    }
-
-    private void addChip(String name) {
-        String trimmed = name.trim();
-        for (int i = 0; i < b.chipArtists.getChildCount(); i++) {
-            Chip existing = (Chip) b.chipArtists.getChildAt(i);
-            if (existing.getText().toString().equalsIgnoreCase(trimmed)) return;  // no dups
-        }
-        Chip chip = new Chip(requireContext());
-        chip.setText(trimmed);
-        chip.setCloseIconVisible(true);
-        chip.setOnCloseIconClickListener(v -> b.chipArtists.removeView(chip));
-        b.chipArtists.addView(chip);
-    }
-
-    private List<String> collectArtists() {
-        List<String> out = new ArrayList<>();
-        for (int i = 0; i < b.chipArtists.getChildCount(); i++) {
-            out.add(((Chip) b.chipArtists.getChildAt(i)).getText().toString());
-        }
-        return out;
-    }
-
-    private void onSave() {
+    private void onMetadataConfirmed(String title, List<String> artists) {
         if (pickedUri == null) return;
-        addTypedArtist();   // fold any text left in the box into a chip
-
-        String title = b.etTitle.getText() == null ? "" : b.etTitle.getText().toString().trim();
-        List<String> artists = collectArtists();
-
         if (remote.isConfigured()) {
             new MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.add_dest_title)
@@ -181,14 +321,15 @@ public class AnadirFragment extends Fragment {
         }
     }
 
+    // ------------------------- Ingest pipeline -------------------------
+
     /**
      * Before ingesting, look for a near-duplicate on each side this song would
      * land on (local and/or server) and, if found, warn — the byte hash only
      * catches exact files, not the same song from another source.
      */
     private void checkThenProcess(Dest dest, String title, List<String> artists) {
-        b.btnSave.setEnabled(false);
-        setStatus(getString(R.string.add_checking_dupes), R.color.echoes_on_surface_variant);
+        showWorking(R.string.add_checking_dupes);
         io.execute(() -> {
             List<Song> localMatches = (dest == Dest.LOCAL || dest == Dest.BOTH)
                     ? DuplicateCheck.findSimilar(title, artists, local.allSongs())
@@ -203,6 +344,7 @@ public class AnadirFragment extends Fragment {
                 if (localMatches.isEmpty() && remoteMatches.isEmpty()) {
                     process(pickedUri, dest, title, artists);
                 } else {
+                    dismissWorking();
                     showDuplicateWarning(dest, title, artists, localMatches, remoteMatches);
                 }
             });
@@ -223,10 +365,7 @@ public class AnadirFragment extends Fragment {
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.add_dupe_title)
                 .setMessage(msg.toString())
-                .setNegativeButton(R.string.action_cancel, (d, w) -> {
-                    b.btnSave.setEnabled(true);
-                    setStatus("", R.color.echoes_on_surface_variant);
-                })
+                .setNegativeButton(R.string.action_cancel, null)
                 .setPositiveButton(R.string.add_dupe_add_anyway,
                         (d, w) -> process(pickedUri, dest, title, artists))
                 .show();
@@ -239,9 +378,7 @@ public class AnadirFragment extends Fragment {
 
     private void process(Uri uri, Dest dest, String title, List<String> artists) {
         final Context app = requireContext().getApplicationContext();
-        b.btnSave.setEnabled(false);
-        b.btnPick.setEnabled(false);
-        setStatus(getString(R.string.add_processing), R.color.echoes_on_surface_variant);
+        showWorking(R.string.add_processing);
 
         io.execute(() -> {
             StringBuilder msg = new StringBuilder();
@@ -274,45 +411,67 @@ public class AnadirFragment extends Fragment {
             final boolean success = ok;
             final String text = msg.toString();
             View root = getView();
-            if (root != null) root.post(() -> showResult(text, success));
+            if (root != null) root.post(() -> {
+                if (b == null) return;
+                result(text);
+                // On success the bytes are now in the library (and/or on the
+                // server), so the downloaded temp file is no longer needed.
+                if (success) deleteYtTemp();
+            });
         });
     }
 
-    private void showResult(String text, boolean ok) {
+    // ------------------------- Feedback helpers -------------------------
+
+    private void showWorking(int msgRes) {
+        dismissWorking();
         if (b == null) return;
-        b.btnSave.setEnabled(true);
-        b.btnPick.setEnabled(true);
-        setStatus(text, ok ? R.color.echoes_success : R.color.echoes_error);
+        working = Snackbar.make(b.getRoot(), getString(msgRes), Snackbar.LENGTH_INDEFINITE);
+        working.show();
     }
 
-    private void setStatus(String msg, int colorRes) {
-        b.tvStatus.setText(msg);
-        b.tvStatus.setTextColor(ContextCompat.getColor(requireContext(), colorRes));
-    }
-
-    /** Best-effort human-readable file name from a content Uri. */
-    private String displayName(Uri uri) {
-        try (Cursor c = requireContext().getContentResolver()
-                .query(uri, null, null, null, null)) {
-            if (c != null && c.moveToFirst()) {
-                int i = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                if (i >= 0) return c.getString(i);
-            }
-        } catch (RuntimeException ignored) {
-            // fall through to the raw uri
+    private void dismissWorking() {
+        if (working != null) {
+            working.dismiss();
+            working = null;
         }
-        return uri.getLastPathSegment();
+    }
+
+    private void result(String text) {
+        dismissWorking();
+        if (b == null) return;
+        Snackbar.make(b.getRoot(), text, Snackbar.LENGTH_LONG).show();
+    }
+
+    private void setYtSearchSpinner(boolean show) {
+        b.pbYtSearch.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    private void setYtStatus(String msg, int colorRes) {
+        b.tvYtStatus.setText(msg);
+        b.tvYtStatus.setTextColor(androidx.core.content.ContextCompat.getColor(requireContext(), colorRes));
+        b.tvYtStatus.setVisibility(msg == null || msg.isBlank() ? View.GONE : View.VISIBLE);
+    }
+
+    private void deleteYtTemp() {
+        if (ytTempFile != null) {
+            //noinspection ResultOfMethodCallIgnored
+            ytTempFile.delete();
+            ytTempFile = null;
+        }
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        dismissWorking();
         b = null;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
+        deleteYtTemp();
         io.shutdownNow();
     }
 }

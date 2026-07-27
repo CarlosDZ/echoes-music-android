@@ -18,8 +18,16 @@ android {
         applicationId "com.musica.app"
         minSdk 24
         targetSdk 34
-        versionCode 3
-        versionName "1.0_1"
+        versionCode 6
+        versionName "1.1_2"
+
+        // youtubedl-android ships native Python + ffmpeg per-ABI. Limiting the
+        // ABIs keeps the APK sane (each ABI adds ~tens of MB). arm64-v8a covers
+        // modern phones (the Xiaomi test device); armeabi-v7a covers older ones.
+        // Add 'x86_64' here if you ever run it on an emulator.
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
     }
 
     signingConfigs {
@@ -52,6 +60,15 @@ android {
     buildFeatures {
         viewBinding true
     }
+
+    // youtubedl-android extracts its bundled Python at runtime, so the native
+    // libs must be stored uncompressed and page-alignable in the APK (the old
+    // extractNativeLibs="true" behaviour). Required or init() crashes.
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
 }
 
 // Output APK name: "Echoes Music-<version>-<variant>.apk".
@@ -68,4 +85,10 @@ dependencies {
     implementation 'androidx.media3:media3-exoplayer:1.4.1'
     // MediaSession + standard media notification + background playback.
     implementation 'androidx.media3:media3-session:1.4.1'
+
+    // On-device YouTube search + download (bundles yt-dlp + Python). The yt-dlp
+    // engine self-updates at runtime, so YouTube breakages are fixed without a
+    // new app release. ffmpeg artifact is needed for audio extraction to MP3.
+    implementation 'io.github.junkfood02.youtubedl-android:library:0.18.1'
+    implementation 'io.github.junkfood02.youtubedl-android:ffmpeg:0.18.1'
 }
