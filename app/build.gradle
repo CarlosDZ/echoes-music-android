@@ -18,8 +18,8 @@ android {
         applicationId "com.musica.app"
         minSdk 24
         targetSdk 34
-        versionCode 6
-        versionName "1.1_2"
+        versionCode 7
+        versionName "1.1_3"
 
         // youtubedl-android ships native Python + ffmpeg per-ABI. Limiting the
         // ABIs keeps the APK sane (each ABI adds ~tens of MB). arm64-v8a covers

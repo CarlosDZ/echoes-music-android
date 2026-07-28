@@ -8,6 +8,14 @@ The format follows the idea of [Keep a Changelog](https://keepachangelog.com/en/
 Versioning uses the project's own `MAJOR.MINOR_PATCH` scheme (e.g. `1.1_0`); Android's
 `versionCode` increases by +1 on each release.
 
+## [1.1_3] — 2026-07-28
+
+### Fixed
+- **Streaming playback of remote songs** no longer fails (401) when the server is
+  configured or changed *after* the app has started: the player now reads the access
+  key **fresh for every stream** instead of fixing it once when its playback service
+  is created. (Local playback and cloning were unaffected.)
+
 ## [1.1_2] — 2026-07-27
 
 ### Fixed

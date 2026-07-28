@@ -9,6 +9,7 @@ import androidx.annotation.OptIn;
 import androidx.media3.common.AudioAttributes;
 import androidx.media3.common.Player;
 import androidx.media3.common.util.UnstableApi;
+import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
@@ -50,12 +51,20 @@ public final class PlaybackService extends MediaSessionService {
     public void onCreate() {
         super.onCreate();
 
-        DefaultHttpDataSource.Factory http = new DefaultHttpDataSource.Factory()
-                .setAllowCrossProtocolRedirects(true);
-        String key = new Prefs(this).apiKey();
-        if (key != null && !key.isEmpty()) {
-            http.setDefaultRequestProperties(Collections.singletonMap("Authorization", key));
-        }
+        // Read the API key fresh for every stream, not once at startup: a key
+        // configured or changed in Ajustes after this service was created would
+        // otherwise never reach the request, and remote playback fails with 401
+        // (local playback is unaffected). Cloning already re-reads it per call.
+        Prefs prefs = new Prefs(this);
+        DataSource.Factory http = () -> {
+            DefaultHttpDataSource.Factory f = new DefaultHttpDataSource.Factory()
+                    .setAllowCrossProtocolRedirects(true);
+            String key = prefs.apiKey();
+            if (key != null && !key.isEmpty()) {
+                f.setDefaultRequestProperties(Collections.singletonMap("Authorization", key));
+            }
+            return f.createDataSource();
+        };
         DefaultDataSource.Factory dataSource = new DefaultDataSource.Factory(this, http);
 
         player = new ExoPlayer.Builder(this)

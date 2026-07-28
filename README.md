@@ -36,7 +36,7 @@ Es la app cliente; el servidor es un proyecto aparte.
 ./gradlew assembleDebug -Dorg.gradle.java.home=/usr/lib/jvm/java-17-openjdk
 
 # Instalar en un dispositivo conectado (adb)
-adb install -r "app/build/outputs/apk/debug/Echoes Music-1.1_2-debug.apk"
+adb install -r "app/build/outputs/apk/debug/Echoes Music-1.1_3-debug.apk"
 ```
 
 > En móviles MIUI/Xiaomi, `./gradlew installDebug` puede fallar con

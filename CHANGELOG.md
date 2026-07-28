@@ -8,6 +8,15 @@ El formato sigue la idea de [Keep a Changelog](https://keepachangelog.com/es-ES/
 El versionado usa el esquema propio del proyecto `MAJOR.MINOR_PATCH` (p. ej. `1.1_0`);
 el `versionCode` de Android sube en +1 en cada release.
 
+## [1.1_3] — 2026-07-28
+
+### Fixed
+- La **reproducción en streaming de canciones remotas** ya no falla (401) cuando el
+  servidor se configura o se cambia *después* de arrancar la app: el reproductor lee
+  la clave de acceso **fresca en cada stream**, en vez de fijarla una sola vez al
+  crear el servicio de reproducción. (La reproducción local y el clonado no se veían
+  afectados.)
+
 ## [1.1_2] — 2026-07-27
 
 ### Fixed
